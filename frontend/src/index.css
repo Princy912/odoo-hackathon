@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: #030712;   /* gray-950 */
+    color: #f1f5f9;              /* slate-100 */
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    background-color: #2563eb;   /* brand-600 */
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px 0 rgba(37,99,235,0.25);
+  }
+
+  .btn-primary:hover {
+    background-color: #3b82f6;   /* brand-500 */
+  }
+
+  .btn-primary:active {
+    background-color: #1d4ed8;   /* brand-700 */
+  }
+
+  .card {
+    background-color: #111827;   /* gray-900 */
+    border: 1px solid #1f2937;   /* gray-800 */
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+}
