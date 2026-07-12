@@ -24,6 +24,7 @@ public class MaintenanceService {
         return maintenanceLogRepository.findAll();
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public MaintenanceLog createMaintenance(MaintenanceRequest request) {
         Vehicle vehicle = vehicleService.getById(request.getVehicleId());
         
@@ -37,6 +38,22 @@ public class MaintenanceService {
         log.setCost(request.getCost());
         log.setServiceDate(request.getServiceDate());
         log.setStatus(MaintenanceLog.MaintenanceStatus.ACTIVE);
+
+        return maintenanceLogRepository.save(log);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public MaintenanceLog closeMaintenance(Long id) {
+        MaintenanceLog log = maintenanceLogRepository.findById(id)
+                .orElseThrow(() -> new com.transitops.exception.ResourceNotFoundException("Maintenance log not found with ID: " + id));
+
+        log.setStatus(MaintenanceLog.MaintenanceStatus.CLOSED);
+
+        Vehicle vehicle = log.getVehicle();
+        if (vehicle != null) {
+            vehicle.setStatus(VehicleStatus.AVAILABLE);
+            vehicleService.update(vehicle.getId(), vehicle);
+        }
 
         return maintenanceLogRepository.save(log);
     }
