@@ -45,6 +45,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/health").permitAll()
                 // Swagger & OpenAPI endpoints
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Trips and maintenance endpoints kept open for testing
+                .requestMatchers("/api/trips/**", "/api/maintenance/**").permitAll()
                 // Every other /api/** route requires authentication
                 .requestMatchers("/api/**").authenticated()
                 // Non-API paths (e.g. actuator) — can tighten later

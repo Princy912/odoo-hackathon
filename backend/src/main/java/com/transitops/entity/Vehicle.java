@@ -19,6 +19,8 @@ public class Vehicle {
     @Column(nullable = false)
     private VehicleStatus status;
 
+    private Double maxLoadCapacity;
+
     public enum VehicleStatus {
         AVAILABLE,
         ON_TRIP,
