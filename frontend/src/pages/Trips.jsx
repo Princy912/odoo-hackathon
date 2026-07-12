@@ -25,6 +25,10 @@ export default function Trips() {
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
 
+  // Custom Delete Confirmation states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [tripToDelete, setTripToDelete] = useState(null);
+
   // Toast notifications state
   const [toast, setToast] = useState({ message: "", type: "" });
 
@@ -128,9 +132,6 @@ export default function Trips() {
   };
 
   const handleDeleteTrip = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
-      return;
-    }
     setError(null);
     try {
       await deleteTrip(id);
@@ -141,6 +142,11 @@ export default function Trips() {
       setError(msg);
       showToast(msg, "error");
     }
+  };
+
+  const triggerDeleteConfirm = (id) => {
+    setTripToDelete(id);
+    setDeleteConfirmOpen(true);
   };
 
   const handleDispatch = async (id) => {
@@ -321,9 +327,9 @@ export default function Trips() {
                             >
                               Edit
                             </button>
-                            <button
-                              onClick={() => handleDeleteTrip(trip.id)}
-                              className="rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+                             <button
+                              onClick={() => triggerDeleteConfirm(trip.id)}
+                              className="rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
                             >
                               Delete
                             </button>
@@ -509,6 +515,39 @@ export default function Trips() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={deleteConfirmOpen}
+        title="Delete Trip"
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete this trip? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setDeleteConfirmOpen(false);
+                if (tripToDelete) {
+                  await handleDeleteTrip(tripToDelete);
+                }
+              }}
+              className="rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 cursor-pointer"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

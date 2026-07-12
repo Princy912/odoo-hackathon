@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import VehicleFilters from "../components/vehicles/VehicleFilters";
 import VehicleTable from "../components/vehicles/VehicleTable";
 import AddVehicleModal from "../components/vehicles/AddVehicleModal";
+import Modal from "../components/common/Modal";
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from "../api/vehicles";
 
 export default function VehiclesPage() {
@@ -12,6 +13,10 @@ export default function VehiclesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
+  
+  // Custom Delete Confirmation states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState(null);
   
   // Toast notifications state
   const [toast, setToast] = useState({ message: "", type: "" });
@@ -85,9 +90,6 @@ export default function VehiclesPage() {
   };
 
   const handleDeleteVehicle = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this vehicle? This action cannot be undone.")) {
-      return;
-    }
     try {
       await deleteVehicle(id);
       showToast("Vehicle deleted successfully");
@@ -95,6 +97,11 @@ export default function VehiclesPage() {
     } catch (err) {
       showToast(err.response?.data?.error || err.response?.data?.message || "Failed to delete vehicle", "error");
     }
+  };
+
+  const triggerDeleteConfirm = (id) => {
+    setVehicleToDelete(id);
+    setDeleteConfirmOpen(true);
   };
 
   const handleChangeStatus = async (id, newStatus) => {
@@ -165,7 +172,7 @@ export default function VehiclesPage() {
         vehicles={vehicles}
         loading={loading}
         onEdit={handleStartEdit}
-        onDelete={handleDeleteVehicle}
+        onDelete={triggerDeleteConfirm}
         onChangeStatus={handleChangeStatus}
       />
 
@@ -176,6 +183,39 @@ export default function VehiclesPage() {
         submitting={submitting}
         vehicle={editingVehicle}
       />
+
+      <Modal
+        open={deleteConfirmOpen}
+        title="Delete Vehicle"
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete this vehicle? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setDeleteConfirmOpen(false);
+                if (vehicleToDelete) {
+                  await handleDeleteVehicle(vehicleToDelete);
+                }
+              }}
+              className="rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 cursor-pointer"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

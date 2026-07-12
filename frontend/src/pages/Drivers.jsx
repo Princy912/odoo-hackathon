@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import DriverFilters from "../components/drivers/DriverFilters";
 import DriverTable from "../components/drivers/DriverTable";
 import AddDriverModal from "../components/drivers/AddDriverModal";
+import Modal from "../components/common/Modal";
 import { getDrivers, createDriver, updateDriver, deleteDriver } from "../api/drivers";
 
 export default function DriversPage() {
@@ -12,6 +13,10 @@ export default function DriversPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
+
+  // Custom Delete Confirmation states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [driverToDelete, setDriverToDelete] = useState(null);
 
   // Toast notifications state
   const [toast, setToast] = useState({ message: "", type: "" });
@@ -71,9 +76,6 @@ export default function DriversPage() {
   };
 
   const handleDeleteDriver = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this driver? This action cannot be undone.")) {
-      return;
-    }
     try {
       await deleteDriver(id);
       showToast("Driver deleted successfully");
@@ -81,6 +83,11 @@ export default function DriversPage() {
     } catch (err) {
       showToast(err.response?.data?.error || err.response?.data?.message || "Failed to delete driver", "error");
     }
+  };
+
+  const triggerDeleteConfirm = (id) => {
+    setDriverToDelete(id);
+    setDeleteConfirmOpen(true);
   };
 
   const handleChangeStatus = async (id, newStatus) => {
@@ -146,7 +153,7 @@ export default function DriversPage() {
         drivers={drivers}
         loading={loading}
         onEdit={handleStartEdit}
-        onDelete={handleDeleteDriver}
+        onDelete={triggerDeleteConfirm}
         onChangeStatus={handleChangeStatus}
       />
 
@@ -157,6 +164,39 @@ export default function DriversPage() {
         submitting={submitting}
         driver={editingDriver}
       />
+
+      <Modal
+        open={deleteConfirmOpen}
+        title="Delete Driver"
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete this driver? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setDeleteConfirmOpen(false);
+                if (driverToDelete) {
+                  await handleDeleteDriver(driverToDelete);
+                }
+              }}
+              className="rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 cursor-pointer"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
