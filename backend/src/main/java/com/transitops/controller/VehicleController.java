@@ -6,6 +6,7 @@ import com.transitops.service.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,9 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-// NOTE: security is intentionally NOT wired here yet (Phase 1). Endpoints are open.
-// Once feature/auth merges in, restrict per docs/AUTH.md (e.g. only FLEET_MANAGER
-// should be able to hit POST/PUT/DELETE).
 @RestController
 @RequestMapping("/api/vehicles")
 @RequiredArgsConstructor
@@ -42,17 +40,20 @@ public class VehicleController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     public ResponseEntity<Vehicle> create(@RequestBody Vehicle vehicle) {
         Vehicle saved = vehicleService.create(vehicle);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     public ResponseEntity<Vehicle> update(@PathVariable Long id, @RequestBody Vehicle vehicle) {
         return ResponseEntity.ok(vehicleService.update(id, vehicle));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         vehicleService.delete(id);
         return ResponseEntity.noContent().build();
