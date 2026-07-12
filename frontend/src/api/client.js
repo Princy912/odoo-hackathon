@@ -11,7 +11,7 @@ const client = axios.create({
 // localStorage key "token" — CONFIRM this key matches AuthContext exactly,
 // since a mismatch here fails silently as 401s with no obvious cause).
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("transitops_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -26,7 +26,8 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem("token");
+      localStorage.removeItem("transitops_token");
+      localStorage.removeItem("transitops_role");
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
