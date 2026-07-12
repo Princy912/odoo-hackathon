@@ -3,6 +3,7 @@ package com.transitops.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +18,6 @@ import com.transitops.entity.Driver;
 import com.transitops.entity.DriverStatus;
 import com.transitops.service.DriverService;
 
-// NOTE: security intentionally left open here (Phase 1 scope), same as VehicleController.
 @RestController
 @RequestMapping("/api/drivers")
 public class DriverController {
@@ -41,12 +41,14 @@ public class DriverController {
         return driverService.getById(id);
     }
 
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Driver create(@RequestBody Driver driver) {
         return driverService.create(driver);
     }
 
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     @PutMapping("/{id}")
     public Driver update(@PathVariable Long id, @RequestBody Driver driver) {
         return driverService.update(id, driver);

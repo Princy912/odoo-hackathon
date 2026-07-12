@@ -3,6 +3,7 @@ package com.transitops.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,9 +19,6 @@ import com.transitops.entity.Vehicle;
 import com.transitops.entity.VehicleStatus;
 import com.transitops.service.VehicleService;
 
-// NOTE: security is intentionally left open here (Phase 1 scope). Once
-// feature/auth is merged, restrict POST/PUT/DELETE to FLEET_MANAGER per
-// docs/AUTH.md, e.g. @PreAuthorize("hasRole('FLEET_MANAGER')").
 @RestController
 @RequestMapping("/api/vehicles")
 public class VehicleController {
@@ -46,17 +44,20 @@ public class VehicleController {
         return vehicleService.getById(id);
     }
 
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Vehicle create(@RequestBody Vehicle vehicle) {
         return vehicleService.create(vehicle);
     }
 
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     @PutMapping("/{id}")
     public Vehicle update(@PathVariable Long id, @RequestBody Vehicle vehicle) {
         return vehicleService.update(id, vehicle);
     }
 
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
