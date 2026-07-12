@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "../common/Modal";
 import { vehicleSchema, vehicleDefaultValues } from "../../schemas/vehicleSchema";
 
-export default function AddVehicleModal({ open, onClose, onSubmit, submitting }) {
+export default function AddVehicleModal({ open, onClose, onSubmit, submitting, vehicle }) {
+  const isEdit = !!vehicle;
+
   const {
     register,
     handleSubmit,
@@ -13,6 +16,24 @@ export default function AddVehicleModal({ open, onClose, onSubmit, submitting })
     resolver: zodResolver(vehicleSchema),
     defaultValues: vehicleDefaultValues,
   });
+
+  useEffect(() => {
+    if (open) {
+      if (vehicle) {
+        reset({
+          regNumber: vehicle.regNumber || "",
+          model: vehicle.model || "",
+          type: vehicle.type || "",
+          maxLoadCapacity: vehicle.maxLoadCapacity || "",
+          odometer: vehicle.odometer != null ? vehicle.odometer : "",
+          acquisitionCost: vehicle.acquisitionCost != null ? vehicle.acquisitionCost : "",
+          region: vehicle.region || "",
+        });
+      } else {
+        reset(vehicleDefaultValues);
+      }
+    }
+  }, [vehicle, open, reset]);
 
   const submit = async (data) => {
     await onSubmit(data);
@@ -25,7 +46,7 @@ export default function AddVehicleModal({ open, onClose, onSubmit, submitting })
   };
 
   return (
-    <Modal open={open} title="Add vehicle" onClose={close}>
+    <Modal open={open} title={isEdit ? "Edit vehicle" : "Add vehicle"} onClose={close}>
       <form onSubmit={handleSubmit(submit)} className="space-y-4" noValidate>
         <Field label="Registration number" error={errors.regNumber?.message}>
           <input
@@ -96,7 +117,7 @@ export default function AddVehicleModal({ open, onClose, onSubmit, submitting })
             disabled={submitting}
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
-            {submitting ? "Adding…" : "Add vehicle"}
+            {submitting ? (isEdit ? "Saving…" : "Adding…") : (isEdit ? "Save changes" : "Add vehicle")}
           </button>
         </div>
       </form>

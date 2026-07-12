@@ -2,12 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import VehicleFilters from "../components/vehicles/VehicleFilters";
 import VehicleTable from "../components/vehicles/VehicleTable";
 import AddVehicleModal from "../components/vehicles/AddVehicleModal";
-import { getVehicles, createVehicle } from "../api/vehicles";
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from "../api/vehicles";
 
-// NOTE for merge (Phase 3): Member 4 owns the page shell / Layout / routing
-// on feature/dashboard-reports (route "/vehicles" already points somewhere).
-// This component is the real page content — swap Member 4's placeholder
-// for this default export once branches merge.
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +11,15 @@ export default function VehiclesPage() {
   const [filters, setFilters] = useState({ status: "", type: "", region: "" });
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  
+  // Toast notifications state
+  const [toast, setToast] = useState({ message: "", type: "" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+  };
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -35,8 +40,6 @@ export default function VehiclesPage() {
     fetchVehicles();
   }, [fetchVehicles]);
 
-  // Type/region are free-text fields on the backend, not enums — derive the
-  // filter dropdown options from whatever's actually in the data so far.
   const typeOptions = useMemo(
     () => uniqueSorted(vehicles.map((v) => v.type)),
     [vehicles]
@@ -46,7 +49,7 @@ export default function VehiclesPage() {
     [vehicles]
   );
 
-  const handleAddVehicle = async (formValues) => {
+  const handleAddOrEditVehicle = async (formValues) => {
     setSubmitting(true);
     setError("");
     try {
@@ -57,18 +60,75 @@ export default function VehiclesPage() {
         acquisitionCost:
           formValues.acquisitionCost === "" ? null : Number(formValues.acquisitionCost),
       };
-      await createVehicle(payload);
+
+      if (editingVehicle) {
+        payload.status = editingVehicle.status; // Keep existing status unless explicitly changed in table
+        await updateVehicle(editingVehicle.id, payload);
+        showToast("Vehicle updated successfully");
+      } else {
+        await createVehicle(payload);
+        showToast("Vehicle registered successfully");
+      }
       setModalOpen(false);
+      setEditingVehicle(null);
       await fetchVehicles();
     } catch (err) {
-      setError(err.response?.data?.error || "Couldn't add vehicle. Please try again.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Couldn't save vehicle. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleStartEdit = (vehicle) => {
+    setEditingVehicle(vehicle);
+    setModalOpen(true);
+  };
+
+  const handleDeleteVehicle = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this vehicle? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await deleteVehicle(id);
+      showToast("Vehicle deleted successfully");
+      await fetchVehicles();
+    } catch (err) {
+      showToast(err.response?.data?.error || err.response?.data?.message || "Failed to delete vehicle", "error");
+    }
+  };
+
+  const handleChangeStatus = async (id, newStatus) => {
+    try {
+      const vehicle = vehicles.find((v) => v.id === id);
+      if (!vehicle) return;
+      await updateVehicle(id, { ...vehicle, status: newStatus });
+      showToast(`Vehicle status changed to ${newStatus}`);
+      await fetchVehicles();
+    } catch (err) {
+      showToast(err.response?.data?.error || err.response?.data?.message || "Failed to change status", "error");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setEditingVehicle(null);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Toast popup */}
+      {toast.message && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-semibold shadow-md transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-rose-50 text-rose-800 border border-rose-200"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Vehicles</h1>
@@ -78,7 +138,10 @@ export default function VehiclesPage() {
         </div>
         <button
           type="button"
-          onClick={() => setModalOpen(true)}
+          onClick={() => {
+            setEditingVehicle(null);
+            setModalOpen(true);
+          }}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
         >
           + Add vehicle
@@ -98,13 +161,20 @@ export default function VehiclesPage() {
         </div>
       )}
 
-      <VehicleTable vehicles={vehicles} loading={loading} />
+      <VehicleTable
+        vehicles={vehicles}
+        loading={loading}
+        onEdit={handleStartEdit}
+        onDelete={handleDeleteVehicle}
+        onChangeStatus={handleChangeStatus}
+      />
 
       <AddVehicleModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleAddVehicle}
+        onClose={handleCloseModal}
+        onSubmit={handleAddOrEditVehicle}
         submitting={submitting}
+        vehicle={editingVehicle}
       />
     </div>
   );

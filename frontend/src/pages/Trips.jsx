@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTrips, createTrip, dispatchTrip, completeTrip, cancelTrip } from "../api/trips";
+import { getTrips, createTrip, dispatchTrip, completeTrip, cancelTrip, updateTrip, deleteTrip } from "../api/trips";
 import { getVehicles } from "../api/vehicles";
 import { getDrivers } from "../api/drivers";
 import StatusBadge from "../components/common/StatusBadge";
@@ -23,9 +23,18 @@ export default function Trips() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [editingTrip, setEditingTrip] = useState(null);
+
+  // Toast notifications state
+  const [toast, setToast] = useState({ message: "", type: "" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+  };
 
   // Form States
-  const [newTrip, setNewTrip] = useState({
+  const [tripForm, setTripForm] = useState({
     source: "",
     destination: "",
     vehicleId: "",
@@ -64,21 +73,30 @@ export default function Trips() {
     }
   }
 
-  const handleCreateTrip = async (e) => {
+  const handleSaveTrip = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
       const payload = {
-        ...newTrip,
-        vehicleId: Number(newTrip.vehicleId),
-        driverId: Number(newTrip.driverId),
-        cargoWeight: Number(newTrip.cargoWeight),
-        plannedDistance: Number(newTrip.plannedDistance),
+        ...tripForm,
+        vehicleId: Number(tripForm.vehicleId),
+        driverId: Number(tripForm.driverId),
+        cargoWeight: Number(tripForm.cargoWeight),
+        plannedDistance: Number(tripForm.plannedDistance),
       };
-      await createTrip(payload);
+
+      if (editingTrip) {
+        await updateTrip(editingTrip.id, payload);
+        showToast("Trip updated successfully");
+      } else {
+        await createTrip(payload);
+        showToast("Trip created successfully");
+      }
+
       setCreateModalOpen(false);
-      setNewTrip({
+      setEditingTrip(null);
+      setTripForm({
         source: "",
         destination: "",
         vehicleId: "",
@@ -88,9 +106,36 @@ export default function Trips() {
       });
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to create trip.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Failed to save trip.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleStartEdit = (trip) => {
+    setEditingTrip(trip);
+    setTripForm({
+      source: trip.source || "",
+      destination: trip.destination || "",
+      vehicleId: trip.vehicle?.id || "",
+      driverId: trip.driver?.id || "",
+      cargoWeight: trip.cargoWeight || "",
+      plannedDistance: trip.plannedDistance || "",
+    });
+    setCreateModalOpen(true);
+  };
+
+  const handleDeleteTrip = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
+      return;
+    }
+    setError(null);
+    try {
+      await deleteTrip(id);
+      showToast("Trip deleted successfully");
+      await fetchData();
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || "Failed to delete trip.");
     }
   };
 
@@ -98,6 +143,7 @@ export default function Trips() {
     setError(null);
     try {
       await dispatchTrip(id);
+      showToast("Trip dispatched successfully");
       await fetchData();
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Failed to dispatch trip.");
@@ -108,6 +154,7 @@ export default function Trips() {
     setError(null);
     try {
       await cancelTrip(id);
+      showToast("Trip cancelled successfully");
       await fetchData();
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Failed to cancel trip.");
@@ -130,6 +177,7 @@ export default function Trips() {
         fuelConsumed: Number(completionData.fuelConsumed),
       };
       await completeTrip(selectedTripId, payload);
+      showToast("Trip completed successfully");
       setCompleteModalOpen(false);
       await fetchData();
     } catch (err) {
@@ -139,12 +187,42 @@ export default function Trips() {
     }
   };
 
-  // Keep dropdown choices list clean (only ACTIVE/AVAILABLE status)
-  const availableVehicles = vehicles.filter(v => v.status === "AVAILABLE");
-  const availableDrivers = drivers.filter(d => d.status === "AVAILABLE");
+  const handleCloseModal = () => {
+    setCreateModalOpen(false);
+    setEditingTrip(null);
+    setTripForm({
+      source: "",
+      destination: "",
+      vehicleId: "",
+      driverId: "",
+      cargoWeight: "",
+      plannedDistance: "",
+    });
+  };
+
+  // Keep dropdown choices list clean (only AVAILABLE status or the currently assigned asset when editing)
+  const availableVehicles = vehicles.filter(
+    (v) => v.status === "AVAILABLE" || (editingTrip && v.id === editingTrip.vehicle?.id)
+  );
+  const availableDrivers = drivers.filter(
+    (d) => d.status === "AVAILABLE" || (editingTrip && d.id === editingTrip.driver?.id)
+  );
 
   return (
     <div className="space-y-6">
+      {/* Toast popup */}
+      {toast.message && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-semibold shadow-md transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-rose-50 text-rose-800 border border-rose-200"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Trips</h1>
@@ -154,7 +232,10 @@ export default function Trips() {
         </div>
         <button
           type="button"
-          onClick={() => setCreateModalOpen(true)}
+          onClick={() => {
+            setEditingTrip(null);
+            setCreateModalOpen(true);
+          }}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
         >
           + Create Trip
@@ -217,28 +298,42 @@ export default function Trips() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         {trip.status === "DRAFT" && (
-                          <button
-                            onClick={() => handleDispatch(trip.id)}
-                            className="rounded bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition-colors"
-                          >
-                            Dispatch
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleDispatch(trip.id)}
+                              className="rounded bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition-colors"
+                            >
+                              Dispatch
+                            </button>
+                            <button
+                              onClick={() => handleStartEdit(trip)}
+                              className="rounded bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTrip(trip.id)}
+                              className="rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                         {trip.status === "DISPATCHED" && (
-                          <button
-                            onClick={() => openCompleteModal(trip.id)}
-                            className="rounded bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
-                          >
-                            Complete
-                          </button>
-                        )}
-                        {(trip.status === "DRAFT" || trip.status === "DISPATCHED") && (
-                          <button
-                            onClick={() => handleCancel(trip.id)}
-                            className="rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
-                          >
-                            Cancel
-                          </button>
+                          <>
+                            <button
+                              onClick={() => openCompleteModal(trip.id)}
+                              className="rounded bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            >
+                              Complete
+                            </button>
+                            <button
+                              onClick={() => handleCancel(trip.id)}
+                              className="rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -250,9 +345,9 @@ export default function Trips() {
         </div>
       )}
 
-      {/* CREATE TRIP MODAL */}
-      <Modal open={createModalOpen} title="Create Trip" onClose={() => setCreateModalOpen(false)}>
-        <form onSubmit={handleCreateTrip} className="space-y-4">
+      {/* CREATE/EDIT TRIP MODAL */}
+      <Modal open={createModalOpen} title={editingTrip ? "Edit Trip" : "Create Trip"} onClose={handleCloseModal}>
+        <form onSubmit={handleSaveTrip} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Source</label>
@@ -261,8 +356,8 @@ export default function Trips() {
                 required
                 placeholder="e.g. Warehouse A"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newTrip.source}
-                onChange={(e) => setNewTrip({ ...newTrip, source: e.target.value })}
+                value={tripForm.source}
+                onChange={(e) => setTripForm({ ...tripForm, source: e.target.value })}
               />
             </div>
             <div>
@@ -272,8 +367,8 @@ export default function Trips() {
                 required
                 placeholder="e.g. Retail Depot B"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newTrip.destination}
-                onChange={(e) => setNewTrip({ ...newTrip, destination: e.target.value })}
+                value={tripForm.destination}
+                onChange={(e) => setTripForm({ ...tripForm, destination: e.target.value })}
               />
             </div>
           </div>
@@ -284,8 +379,8 @@ export default function Trips() {
               <select
                 required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newTrip.vehicleId}
-                onChange={(e) => setNewTrip({ ...newTrip, vehicleId: e.target.value })}
+                value={tripForm.vehicleId}
+                onChange={(e) => setTripForm({ ...tripForm, vehicleId: e.target.value })}
               >
                 <option value="">Select Vehicle</option>
                 {availableVehicles.map((v) => (
@@ -300,8 +395,8 @@ export default function Trips() {
               <select
                 required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newTrip.driverId}
-                onChange={(e) => setNewTrip({ ...newTrip, driverId: e.target.value })}
+                value={tripForm.driverId}
+                onChange={(e) => setTripForm({ ...tripForm, driverId: e.target.value })}
               >
                 <option value="">Select Driver</option>
                 {availableDrivers.map((d) => (
@@ -321,8 +416,8 @@ export default function Trips() {
                 required
                 placeholder="e.g. 2500"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newTrip.cargoWeight}
-                onChange={(e) => setNewTrip({ ...newTrip, cargoWeight: e.target.value })}
+                value={tripForm.cargoWeight}
+                onChange={(e) => setTripForm({ ...tripForm, cargoWeight: e.target.value })}
               />
             </div>
             <div>
@@ -332,8 +427,8 @@ export default function Trips() {
                 required
                 placeholder="e.g. 120"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newTrip.plannedDistance}
-                onChange={(e) => setNewTrip({ ...newTrip, plannedDistance: e.target.value })}
+                value={tripForm.plannedDistance}
+                onChange={(e) => setTripForm({ ...tripForm, plannedDistance: e.target.value })}
               />
             </div>
           </div>
@@ -341,7 +436,7 @@ export default function Trips() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setCreateModalOpen(false)}
+              onClick={handleCloseModal}
               className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               Cancel
@@ -351,7 +446,7 @@ export default function Trips() {
               disabled={submitting}
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
             >
-              {submitting ? "Creating..." : "Create Trip"}
+              {submitting ? "Saving..." : (editingTrip ? "Save changes" : "Create Trip")}
             </button>
           </div>
         </form>

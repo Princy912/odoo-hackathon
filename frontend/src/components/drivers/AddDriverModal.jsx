@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "../common/Modal";
 import { driverSchema, driverDefaultValues } from "../../schemas/driverSchema";
 
-export default function AddDriverModal({ open, onClose, onSubmit, submitting }) {
+export default function AddDriverModal({ open, onClose, onSubmit, submitting, driver }) {
+  const isEdit = !!driver;
+
   const {
     register,
     handleSubmit,
@@ -13,6 +16,22 @@ export default function AddDriverModal({ open, onClose, onSubmit, submitting }) 
     resolver: zodResolver(driverSchema),
     defaultValues: driverDefaultValues,
   });
+
+  useEffect(() => {
+    if (open) {
+      if (driver) {
+        reset({
+          name: driver.name || "",
+          licenseNumber: driver.licenseNumber || "",
+          licenseCategory: driver.licenseCategory || "",
+          licenseExpiry: driver.licenseExpiry || "",
+          contactNumber: driver.contactNumber || "",
+        });
+      } else {
+        reset(driverDefaultValues);
+      }
+    }
+  }, [driver, open, reset]);
 
   const submit = async (data) => {
     await onSubmit(data);
@@ -25,7 +44,7 @@ export default function AddDriverModal({ open, onClose, onSubmit, submitting }) 
   };
 
   return (
-    <Modal open={open} title="Add driver" onClose={close}>
+    <Modal open={open} title={isEdit ? "Edit driver" : "Add driver"} onClose={close}>
       <form onSubmit={handleSubmit(submit)} className="space-y-4" noValidate>
         <Field label="Name" error={errors.name?.message}>
           <input {...register("name")} type="text" className={inputClass(errors.name)} />
@@ -78,7 +97,7 @@ export default function AddDriverModal({ open, onClose, onSubmit, submitting }) 
             disabled={submitting}
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
-            {submitting ? "Adding…" : "Add driver"}
+            {submitting ? (isEdit ? "Saving…" : "Adding…") : (isEdit ? "Save changes" : "Add driver")}
           </button>
         </div>
       </form>

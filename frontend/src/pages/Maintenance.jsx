@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMaintenanceLogs, createMaintenance, closeMaintenance } from "../api/maintenance";
+import { getMaintenanceLogs, createMaintenance, closeMaintenance, updateMaintenance, deleteMaintenance } from "../api/maintenance";
 import { getVehicles } from "../api/vehicles";
 import StatusBadge from "../components/common/StatusBadge";
 import Modal from "../components/common/Modal";
@@ -17,9 +17,18 @@ export default function Maintenance() {
 
   // Modal States
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingMaint, setEditingMaint] = useState(null);
+
+  // Toast notifications state
+  const [toast, setToast] = useState({ message: "", type: "" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+  };
 
   // Form States
-  const [newMaint, setNewMaint] = useState({
+  const [maintForm, setMaintForm] = useState({
     vehicleId: "",
     type: "",
     cost: "",
@@ -49,20 +58,29 @@ export default function Maintenance() {
     }
   }
 
-  const handleCreateMaint = async (e) => {
+  const handleSaveMaint = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
       const payload = {
-        vehicleId: Number(newMaint.vehicleId),
-        type: newMaint.type,
-        cost: Number(newMaint.cost),
-        serviceDate: newMaint.serviceDate,
+        vehicleId: Number(maintForm.vehicleId),
+        type: maintForm.type,
+        cost: Number(maintForm.cost),
+        serviceDate: maintForm.serviceDate,
       };
-      await createMaintenance(payload);
+
+      if (editingMaint) {
+        await updateMaintenance(editingMaint.id, payload);
+        showToast("Maintenance record updated successfully");
+      } else {
+        await createMaintenance(payload);
+        showToast("Maintenance record logged successfully");
+      }
+
       setCreateModalOpen(false);
-      setNewMaint({
+      setEditingMaint(null);
+      setMaintForm({
         vehicleId: "",
         type: "",
         cost: "",
@@ -70,9 +88,34 @@ export default function Maintenance() {
       });
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to create maintenance log.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Failed to save maintenance log.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleStartEdit = (log) => {
+    setEditingMaint(log);
+    setMaintForm({
+      vehicleId: log.vehicle?.id || "",
+      type: log.type || "",
+      cost: log.cost || "",
+      serviceDate: log.serviceDate || "",
+    });
+    setCreateModalOpen(true);
+  };
+
+  const handleDeleteMaint = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this maintenance record? This action cannot be undone.")) {
+      return;
+    }
+    setError(null);
+    try {
+      await deleteMaintenance(id);
+      showToast("Maintenance record deleted successfully");
+      await fetchData();
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || "Failed to delete maintenance record.");
     }
   };
 
@@ -80,18 +123,44 @@ export default function Maintenance() {
     setError(null);
     try {
       await closeMaintenance(id);
+      showToast("Maintenance record closed successfully");
       await fetchData();
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Failed to close maintenance log.");
     }
   };
 
-  // Only show vehicles that are AVAILABLE, ON_TRIP, or IN_SHOP. 
-  // It is best to schedule maintenance on AVAILABLE vehicles (which transitions them to IN_SHOP).
-  const availableVehicles = vehicles.filter(v => v.status === "AVAILABLE" || v.status === "IN_SHOP");
+  const handleCloseModal = () => {
+    setCreateModalOpen(false);
+    setEditingMaint(null);
+    setMaintForm({
+      vehicleId: "",
+      type: "",
+      cost: "",
+      serviceDate: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  // Only show vehicles that are AVAILABLE or currently assigned to the log being edited
+  const availableVehicles = vehicles.filter(
+    (v) => v.status === "AVAILABLE" || (editingMaint && v.id === editingMaint.vehicle?.id)
+  );
 
   return (
     <div className="space-y-6">
+      {/* Toast popup */}
+      {toast.message && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-semibold shadow-md transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-rose-50 text-rose-800 border border-rose-200"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Maintenance Logs</h1>
@@ -101,7 +170,10 @@ export default function Maintenance() {
         </div>
         <button
           type="button"
-          onClick={() => setCreateModalOpen(true)}
+          onClick={() => {
+            setEditingMaint(null);
+            setCreateModalOpen(true);
+          }}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
         >
           + Create Maintenance
@@ -162,14 +234,28 @@ export default function Maintenance() {
                       <StatusBadge status={log.status} colorMap={maintStatusColors} />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {log.status === "ACTIVE" && (
+                      <div className="flex justify-end gap-2">
+                        {log.status === "ACTIVE" && (
+                          <button
+                            onClick={() => handleCloseMaint(log.id)}
+                            className="rounded bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                          >
+                            Close
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleCloseMaint(log.id)}
-                          className="rounded bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                          onClick={() => handleStartEdit(log)}
+                          className="rounded bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors"
                         >
-                          Close Record
+                          Edit
                         </button>
-                      )}
+                        <button
+                          onClick={() => handleDeleteMaint(log.id)}
+                          className="rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -179,16 +265,16 @@ export default function Maintenance() {
         </div>
       )}
 
-      {/* CREATE MAINTENANCE MODAL */}
-      <Modal open={createModalOpen} title="Log Vehicle Maintenance" onClose={() => setCreateModalOpen(false)}>
-        <form onSubmit={handleCreateMaint} className="space-y-4">
+      {/* CREATE/EDIT MAINTENANCE MODAL */}
+      <Modal open={createModalOpen} title={editingMaint ? "Edit Maintenance Log" : "Log Vehicle Maintenance"} onClose={handleCloseModal}>
+        <form onSubmit={handleSaveMaint} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Vehicle</label>
             <select
               required
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-              value={newMaint.vehicleId}
-              onChange={(e) => setNewMaint({ ...newMaint, vehicleId: e.target.value })}
+              value={maintForm.vehicleId}
+              onChange={(e) => setMaintForm({ ...maintForm, vehicleId: e.target.value })}
             >
               <option value="">Select Vehicle</option>
               {availableVehicles.map((v) => (
@@ -206,8 +292,8 @@ export default function Maintenance() {
               required
               placeholder="e.g. Engine Tuning, Brake Pads replacement"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              value={newMaint.type}
-              onChange={(e) => setNewMaint({ ...newMaint, type: e.target.value })}
+              value={maintForm.type}
+              onChange={(e) => setMaintForm({ ...maintForm, type: e.target.value })}
             />
           </div>
 
@@ -220,8 +306,8 @@ export default function Maintenance() {
                 required
                 placeholder="e.g. 450.00"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newMaint.cost}
-                onChange={(e) => setNewMaint({ ...newMaint, cost: e.target.value })}
+                value={maintForm.cost}
+                onChange={(e) => setMaintForm({ ...maintForm, cost: e.target.value })}
               />
             </div>
             <div>
@@ -230,8 +316,8 @@ export default function Maintenance() {
                 type="date"
                 required
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                value={newMaint.serviceDate}
-                onChange={(e) => setNewMaint({ ...newMaint, serviceDate: e.target.value })}
+                value={maintForm.serviceDate}
+                onChange={(e) => setMaintForm({ ...maintForm, serviceDate: e.target.value })}
               />
             </div>
           </div>
@@ -239,7 +325,7 @@ export default function Maintenance() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setCreateModalOpen(false)}
+              onClick={handleCloseModal}
               className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               Cancel
@@ -249,7 +335,7 @@ export default function Maintenance() {
               disabled={submitting}
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
             >
-              {submitting ? "Logging..." : "Log Maintenance"}
+              {submitting ? "Saving..." : (editingMaint ? "Save changes" : "Log Maintenance")}
             </button>
           </div>
         </form>

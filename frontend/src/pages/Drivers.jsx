@@ -2,10 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import DriverFilters from "../components/drivers/DriverFilters";
 import DriverTable from "../components/drivers/DriverTable";
 import AddDriverModal from "../components/drivers/AddDriverModal";
-import { getDrivers, createDriver } from "../api/drivers";
+import { getDrivers, createDriver, updateDriver, deleteDriver } from "../api/drivers";
 
-// NOTE for merge (Phase 3): same deal as Vehicles.jsx — Member 4 owns the
-// route/page shell on feature/dashboard-reports, this is the real content.
 export default function DriversPage() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +11,15 @@ export default function DriversPage() {
   const [filters, setFilters] = useState({ status: "" });
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingDriver, setEditingDriver] = useState(null);
+
+  // Toast notifications state
+  const [toast, setToast] = useState({ message: "", type: "" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+  };
 
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
@@ -33,22 +40,81 @@ export default function DriversPage() {
     fetchDrivers();
   }, [fetchDrivers]);
 
-  const handleAddDriver = async (formValues) => {
+  const handleAddOrEditDriver = async (formValues) => {
     setSubmitting(true);
     setError("");
     try {
-      await createDriver(formValues);
+      if (editingDriver) {
+        const payload = {
+          ...editingDriver,
+          ...formValues,
+        };
+        await updateDriver(editingDriver.id, payload);
+        showToast("Driver updated successfully");
+      } else {
+        await createDriver(formValues);
+        showToast("Driver registered successfully");
+      }
       setModalOpen(false);
+      setEditingDriver(null);
       await fetchDrivers();
     } catch (err) {
-      setError(err.response?.data?.error || "Couldn't add driver. Please try again.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Couldn't save driver. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleStartEdit = (driver) => {
+    setEditingDriver(driver);
+    setModalOpen(true);
+  };
+
+  const handleDeleteDriver = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this driver? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await deleteDriver(id);
+      showToast("Driver deleted successfully");
+      await fetchDrivers();
+    } catch (err) {
+      showToast(err.response?.data?.error || err.response?.data?.message || "Failed to delete driver", "error");
+    }
+  };
+
+  const handleChangeStatus = async (id, newStatus) => {
+    try {
+      const driver = drivers.find((d) => d.id === id);
+      if (!driver) return;
+      await updateDriver(id, { ...driver, status: newStatus });
+      showToast(`Driver status changed to ${newStatus}`);
+      await fetchDrivers();
+    } catch (err) {
+      showToast(err.response?.data?.error || err.response?.data?.message || "Failed to change status", "error");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setEditingDriver(null);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Toast popup */}
+      {toast.message && (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg px-4 py-3 text-sm font-semibold shadow-md transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-rose-50 text-rose-800 border border-rose-200"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Drivers</h1>
@@ -58,7 +124,10 @@ export default function DriversPage() {
         </div>
         <button
           type="button"
-          onClick={() => setModalOpen(true)}
+          onClick={() => {
+            setEditingDriver(null);
+            setModalOpen(true);
+          }}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
         >
           + Add driver
@@ -73,13 +142,20 @@ export default function DriversPage() {
         </div>
       )}
 
-      <DriverTable drivers={drivers} loading={loading} />
+      <DriverTable
+        drivers={drivers}
+        loading={loading}
+        onEdit={handleStartEdit}
+        onDelete={handleDeleteDriver}
+        onChangeStatus={handleChangeStatus}
+      />
 
       <AddDriverModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleAddDriver}
+        onClose={handleCloseModal}
+        onSubmit={handleAddOrEditDriver}
         submitting={submitting}
+        driver={editingDriver}
       />
     </div>
   );
