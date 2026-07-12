@@ -1,113 +1,95 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+  const [loginError, setLoginError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const { login, isLoading, error } = useAuth();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    defaultValues: { email: "", password: "" },
-  });
 
-  async function onSubmit({ email, password }) {
-    const ok = await login(email, password);
-    if (ok) {
-      navigate("/dashboard", { replace: true });
+  async function onSubmit(data) {
+    setLoginError(null);
+    setSubmitting(true);
+    try {
+      const res = await apiClient.post("/auth/login", {
+        email: data.email,
+        password: data.password,
+      });
+      // Expected shape: { token, role, name, email } — adjust to match
+      // whatever AuthController.login() actually returns after merge.
+      const { token, ...user } = res.data;
+      login(token, user);
+      navigate("/dashboard");
+    } catch (err) {
+      setLoginError("Login failed. Check your credentials.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100">
-      <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded bg-amber-400 font-mono text-sm font-bold text-slate-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 rounded-md bg-amber-500 text-white font-bold flex items-center justify-center text-sm">
             TO
-          </span>
-          <span className="font-mono text-sm tracking-widest text-slate-800">
+          </div>
+          <span className="font-semibold tracking-wide text-gray-800">
             TRANSITOPS
           </span>
         </div>
 
-        <h1 className="mb-1 text-lg font-semibold text-slate-900">
-          Sign in
-        </h1>
-        <p className="mb-6 text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Sign in</h1>
+        <p className="text-sm text-gray-500 mb-6">
           Use your fleet console credentials.
         </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label
-              htmlFor="email"
-              className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500"
-            >
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
               Email
             </label>
             <input
-              id="email"
               type="email"
-              autoComplete="email"
-              className={`w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400 ${
-                errors.email ? "border-red-400" : "border-slate-300"
-              }`}
               placeholder="admin@transitops.com"
-              {...register("email", {
-                required: "Email is required",
-                pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: "Enter a valid email address",
-                },
-              })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              {...register("email", { required: "Email is required" })}
             />
             {errors.email && (
-              <p className="mt-1 text-xs text-red-600">
-                {errors.email.message}
-              </p>
+              <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500"
-            >
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
               Password
             </label>
             <input
-              id="password"
               type="password"
-              autoComplete="current-password"
-              className={`w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400 ${
-                errors.password ? "border-red-400" : "border-slate-300"
-              }`}
-              placeholder="••••••••"
-              {...register("password", {
-                required: "Password is required",
-              })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              {...register("password", { required: "Password is required" })}
             />
             {errors.password && (
-              <p className="mt-1 text-xs text-red-600">
-                {errors.password.message}
-              </p>
+              <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>
             )}
           </div>
 
-          {error && (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
+          {loginError && (
+            <div className="rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">
+              {loginError}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full rounded bg-slate-900 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={submitting}
+            className="w-full bg-gray-900 hover:bg-gray-800 disabled:opacity-60 text-white font-medium rounded-lg py-2.5 text-sm transition-colors"
           >
-            {isLoading ? "Signing in…" : "Sign in"}
+            {submitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>
