@@ -84,7 +84,7 @@ export default function Login() {
               className={`w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-amber-400 ${
                 errors.password ? "border-red-400" : "border-slate-300"
               }`}
-              placeholder="••••••••"
+              placeholder="admin123"
               {...register("password", {
                 required: "Password is required",
               })}
