@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Phase 3: security is now wired in, per docs/AUTH.md (leader, feature/auth).
+ * SecurityConfig already requires a valid JWT for everything under /api/**
+ * except /api/auth/**, so GET here just needs "logged in, any role" — no
+ * annotation needed for that. Writes are restricted to FLEET_MANAGER.
+ */
 @RestController
 @RequestMapping("/api/vehicles")
 @RequiredArgsConstructor
@@ -39,21 +45,21 @@ public class VehicleController {
         return ResponseEntity.ok(vehicleService.findById(id));
     }
 
-    @PostMapping
     @PreAuthorize("hasRole('FLEET_MANAGER')")
+    @PostMapping
     public ResponseEntity<Vehicle> create(@RequestBody Vehicle vehicle) {
         Vehicle saved = vehicleService.create(vehicle);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    @PutMapping("/{id}")
     @PreAuthorize("hasRole('FLEET_MANAGER')")
+    @PutMapping("/{id}")
     public ResponseEntity<Vehicle> update(@PathVariable Long id, @RequestBody Vehicle vehicle) {
         return ResponseEntity.ok(vehicleService.update(id, vehicle));
     }
 
-    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('FLEET_MANAGER')")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         vehicleService.delete(id);
         return ResponseEntity.noContent().build();
