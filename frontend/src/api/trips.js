@@ -19,3 +19,11 @@ export function completeTrip(id, payload) {
 export function cancelTrip(id) {
   return client.put(`/trips/${id}/cancel`).then((res) => res.data);
 }
+
+export function updateTrip(id, payload) {
+  return client.put(`/trips/${id}`, payload).then((res) => res.data);
+}
+
+export function deleteTrip(id) {
+  return client.delete(`/trips/${id}`).then((res) => res.data);
+}

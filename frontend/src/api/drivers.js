@@ -16,3 +16,7 @@ export function createDriver(payload) {
 export function updateDriver(id, payload) {
   return client.put(`/drivers/${id}`, payload).then((res) => res.data);
 }
+
+export function deleteDriver(id) {
+  return client.delete(`/drivers/${id}`).then((res) => res.data);
+}
