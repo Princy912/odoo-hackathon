@@ -1,106 +1,77 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const navItems = [
-  { to: "/dashboard", label: "Dashboard", glyph: "◧" },
-  { to: "/vehicles", label: "Vehicles", glyph: "▤" },
-  { to: "/drivers", label: "Drivers", glyph: "◍" },
-  { to: "/trips", label: "Trips", glyph: "↝" },
-  { to: "/maintenance", label: "Maintenance", glyph: "✚" },
-  { to: "/reports", label: "Reports", glyph: "▥" },
+const NAV_ITEMS = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/vehicles", label: "Vehicles" },
+  { to: "/drivers", label: "Drivers" },
+  { to: "/trips", label: "Trips" },
+  { to: "/maintenance", label: "Maintenance" },
+  { to: "/reports", label: "Reports" },
 ];
-
-function roleLabel(role) {
-  if (!role) return "";
-  return role
-    .toLowerCase()
-    .split("_")
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join(" ");
-}
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
-  
-  const name = user?.name || "Loading...";
-  const role = user?.role || "";
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
 
   return (
-    <div className="flex min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
-      <aside className="hidden w-60 flex-col bg-slate-900 text-slate-200 md:flex">
-        <div className="flex items-center gap-2 px-5 py-5 border-b border-slate-800">
-          <span className="flex h-8 w-8 items-center justify-center rounded bg-amber-400 font-mono text-sm font-bold text-slate-900">
+      <aside className="w-56 bg-gray-900 text-gray-200 flex flex-col">
+        <div className="flex items-center gap-2 px-5 py-5">
+          <div className="w-7 h-7 rounded-md bg-amber-500 text-white font-bold flex items-center justify-center text-xs">
             TO
-          </span>
-          <span className="font-mono text-sm tracking-widest text-slate-100">
+          </div>
+          <span className="font-semibold text-sm tracking-wide text-white">
             TRANSITOPS
           </span>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {navItems.map((item) => (
+        <nav className="flex-1 px-2 space-y-1">
+          {NAV_ITEMS.map(({ to, label }) => (
             <NavLink
-              key={item.to}
-              to={item.to}
+              key={to}
+              to={to}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors ${
+                `block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-amber-400 text-slate-900"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    ? "bg-gray-800 text-white"
+                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
                 }`
               }
             >
-              <span aria-hidden="true" className="w-4 text-center font-mono">
-                {item.glyph}
-              </span>
-              {item.label}
+              {label}
             </NavLink>
           ))}
         </nav>
-
-        <div className="border-t border-slate-800 px-5 py-4 font-mono text-[11px] uppercase tracking-wide text-slate-500">
-          Depot build · Phase 1
-        </div>
       </aside>
 
       {/* Main column */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex-1 flex flex-col">
         {/* Top navbar */}
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:px-8">
-          <span className="font-mono text-xs uppercase tracking-widest text-slate-400 md:hidden">
-            TransitOps
-          </span>
-          <div className="hidden text-sm text-slate-500 md:block">
-            Fleet operations console
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right leading-tight">
-              <div className="text-sm font-semibold text-slate-800">
-                {name}
-              </div>
-              <div className="font-mono text-[11px] uppercase tracking-wide text-amber-600">
-                {roleLabel(role)}
-              </div>
+        <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end px-6 gap-4">
+          <div className="text-right">
+            <div className="text-sm font-medium text-gray-900">
+              {user?.name ?? "Fleet Manager"}
             </div>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 font-mono text-xs font-semibold text-white">
-              {name
-                .split(" ")
-                .map((n) => n ? n[0] : "")
-                .join("")}
-            </span>
-            <button
-              onClick={logout}
-              title="Sign Out"
-              className="ml-2 px-2.5 py-1 text-slate-500 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded text-xs font-semibold cursor-pointer transition-all"
-            >
-              Sign Out
-            </button>
+            <div className="text-xs text-gray-400">
+              {user?.role ?? "FLEET_MANAGER"}
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="text-xs font-medium text-gray-500 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5"
+          >
+            Log out
+          </button>
         </header>
 
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="flex-1">{children}</main>
       </div>
     </div>
   );
