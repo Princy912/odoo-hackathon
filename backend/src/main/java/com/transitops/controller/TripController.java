@@ -55,4 +55,15 @@ public class TripController {
     public ResponseEntity<Trip> cancelTrip(@PathVariable Long id) {
         return ResponseEntity.ok(tripService.cancel(id));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Trip> updateTrip(@PathVariable Long id, @Valid @RequestBody TripRequest request) {
+        return ResponseEntity.ok(tripService.updateTrip(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTrip(@PathVariable Long id) {
+        tripService.deleteTrip(id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -30,4 +30,15 @@ public class MaintenanceController {
     public ResponseEntity<MaintenanceLog> closeMaintenance(@PathVariable Long id) {
         return ResponseEntity.ok(maintenanceService.closeMaintenance(id));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<MaintenanceLog> updateMaintenance(@PathVariable Long id, @RequestBody MaintenanceRequest request) {
+        return ResponseEntity.ok(maintenanceService.updateMaintenance(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMaintenance(@PathVariable Long id) {
+        maintenanceService.deleteMaintenance(id);
+        return ResponseEntity.noContent().build();
+    }
 }

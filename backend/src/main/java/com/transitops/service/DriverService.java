@@ -58,6 +58,11 @@ public class DriverService {
                 .orElseThrow(() -> new ResourceNotFoundException("Driver " + id + " not found"));
     }
 
+    public void delete(Long id) {
+        Driver existing = getById(id);
+        driverRepository.delete(existing);
+    }
+
     /**
      * Phase 1: filter by status.
      * Phase 4: also filters by free-text search across name + licenseNumber.

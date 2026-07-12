@@ -148,4 +148,60 @@ public class TripService {
     public List<Trip> getAllTrips() {
         return tripRepository.findAll();
     }
+
+    @Transactional
+    public Trip updateTrip(Long id, TripRequest request) {
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new BusinessRuleException("Trip not found with ID: " + id));
+
+        if (trip.getStatus() != Trip.TripStatus.DRAFT) {
+            throw new BusinessRuleException("Only DRAFT trips can be edited");
+        }
+
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
+                .orElseThrow(() -> new BusinessRuleException("Vehicle not found with ID: " + request.getVehicleId()));
+
+        Driver driver = driverRepository.findById(request.getDriverId())
+                .orElseThrow(() -> new BusinessRuleException("Driver not found with ID: " + request.getDriverId()));
+
+        if (vehicle.getStatus() != VehicleStatus.AVAILABLE && (trip.getVehicle() == null || !vehicle.getId().equals(trip.getVehicle().getId()))) {
+            throw new BusinessRuleException("Vehicle must have status AVAILABLE (current: " + vehicle.getStatus() + ")");
+        }
+
+        if (driver.getStatus() != DriverStatus.AVAILABLE && (trip.getDriver() == null || !driver.getId().equals(trip.getDriver().getId()))) {
+            throw new BusinessRuleException("Driver must have status AVAILABLE (current: " + driver.getStatus() + ")");
+        }
+
+        if (driver.getLicenseExpiry() == null) {
+            throw new BusinessRuleException("Driver has no license expiry date configured");
+        }
+
+        if (driver.getLicenseExpiry().isBefore(LocalDate.now())) {
+            throw new BusinessRuleException("Driver's license is expired. Expiry date: " + driver.getLicenseExpiry());
+        }
+
+        if (vehicle.getMaxLoadCapacity() != null && request.getCargoWeight() > vehicle.getMaxLoadCapacity()) {
+            throw new BusinessRuleException("Cargo weight (" + request.getCargoWeight() 
+                    + ") exceeds vehicle's max load capacity (" + vehicle.getMaxLoadCapacity() + ")");
+        }
+
+        trip.setSource(request.getSource());
+        trip.setDestination(request.getDestination());
+        trip.setVehicle(vehicle);
+        trip.setDriver(driver);
+        trip.setCargoWeight(request.getCargoWeight());
+        trip.setPlannedDistance(request.getPlannedDistance());
+
+        return tripRepository.save(trip);
+    }
+
+    @Transactional
+    public void deleteTrip(Long id) {
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new BusinessRuleException("Trip not found with ID: " + id));
+        if (trip.getStatus() != Trip.TripStatus.DRAFT) {
+            throw new BusinessRuleException("Only DRAFT trips can be deleted");
+        }
+        tripRepository.delete(trip);
+    }
 }
