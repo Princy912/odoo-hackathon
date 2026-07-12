@@ -9,6 +9,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [role, setRole] = useState(() => localStorage.getItem(ROLE_KEY));
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -28,6 +29,23 @@ export function AuthProvider({ children }) {
       localStorage.removeItem(ROLE_KEY);
     }
   }, [role]);
+
+  // Fetch current user details if token exists
+  useEffect(() => {
+    if (token) {
+      async function fetchMe() {
+        try {
+          const { data } = await apiClient.get("/auth/me");
+          setUser(data);
+        } catch (err) {
+          console.error("Failed to fetch user info", err);
+        }
+      }
+      fetchMe();
+    } else {
+      setUser(null);
+    }
+  }, [token]);
 
   async function login(email, password) {
     setIsLoading(true);
@@ -60,6 +78,7 @@ export function AuthProvider({ children }) {
   const value = {
     token,
     role,
+    user,
     isAuthenticated: Boolean(token),
     isLoading,
     error,

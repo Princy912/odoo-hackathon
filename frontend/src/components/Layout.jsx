@@ -1,10 +1,5 @@
 import { NavLink } from "react-router-dom";
-
-// Dummy placeholder user — replaced by real auth context once feature/auth merges (Phase 2).
-const currentUser = {
-  name: "Alex Rivera",
-  role: "FLEET_MANAGER",
-};
+import { useAuth } from "../context/AuthContext";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", glyph: "◧" },
@@ -16,6 +11,7 @@ const navItems = [
 ];
 
 function roleLabel(role) {
+  if (!role) return "";
   return role
     .toLowerCase()
     .split("_")
@@ -24,6 +20,11 @@ function roleLabel(role) {
 }
 
 export default function Layout({ children }) {
+  const { user, logout } = useAuth();
+  
+  const name = user?.name || "Loading...";
+  const role = user?.role || "";
+
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
       {/* Sidebar */}
@@ -77,18 +78,25 @@ export default function Layout({ children }) {
           <div className="flex items-center gap-3">
             <div className="text-right leading-tight">
               <div className="text-sm font-semibold text-slate-800">
-                {currentUser.name}
+                {name}
               </div>
               <div className="font-mono text-[11px] uppercase tracking-wide text-amber-600">
-                {roleLabel(currentUser.role)}
+                {roleLabel(role)}
               </div>
             </div>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 font-mono text-xs font-semibold text-white">
-              {currentUser.name
+              {name
                 .split(" ")
-                .map((n) => n[0])
+                .map((n) => n ? n[0] : "")
                 .join("")}
             </span>
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="ml-2 px-2.5 py-1 text-slate-500 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded text-xs font-semibold cursor-pointer transition-all"
+            >
+              Sign Out
+            </button>
           </div>
         </header>
 

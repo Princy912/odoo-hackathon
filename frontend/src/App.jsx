@@ -4,6 +4,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import VehiclesPage from "./pages/Vehicles";
+import DriversPage from "./pages/Drivers";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 export default function App() {
@@ -28,7 +30,7 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <PlaceholderPage title="Vehicles" />
+                  <VehiclesPage />
                 </Layout>
               </ProtectedRoute>
             }
@@ -38,7 +40,7 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <PlaceholderPage title="Drivers" />
+                  <DriversPage />
                 </Layout>
               </ProtectedRoute>
             }
