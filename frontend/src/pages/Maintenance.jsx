@@ -88,7 +88,9 @@ export default function Maintenance() {
       });
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to save maintenance log.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to save maintenance log.";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -115,7 +117,9 @@ export default function Maintenance() {
       showToast("Maintenance record deleted successfully");
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to delete maintenance record.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to delete maintenance record.";
+      setError(msg);
+      showToast(msg, "error");
     }
   };
 
@@ -126,7 +130,9 @@ export default function Maintenance() {
       showToast("Maintenance record closed successfully");
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to close maintenance log.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to close maintenance log.";
+      setError(msg);
+      showToast(msg, "error");
     }
   };
 

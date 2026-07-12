@@ -106,7 +106,9 @@ export default function Trips() {
       });
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to save trip.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to save trip.";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -135,7 +137,9 @@ export default function Trips() {
       showToast("Trip deleted successfully");
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to delete trip.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to delete trip.";
+      setError(msg);
+      showToast(msg, "error");
     }
   };
 
@@ -146,7 +150,9 @@ export default function Trips() {
       showToast("Trip dispatched successfully");
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to dispatch trip.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to dispatch trip.";
+      setError(msg);
+      showToast(msg, "error");
     }
   };
 
@@ -157,7 +163,9 @@ export default function Trips() {
       showToast("Trip cancelled successfully");
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to cancel trip.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to cancel trip.";
+      setError(msg);
+      showToast(msg, "error");
     }
   };
 
@@ -181,7 +189,9 @@ export default function Trips() {
       setCompleteModalOpen(false);
       await fetchData();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Failed to complete trip.");
+      const msg = err.response?.data?.error || err.response?.data?.message || "Failed to complete trip.";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
