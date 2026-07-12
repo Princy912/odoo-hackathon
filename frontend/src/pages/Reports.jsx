@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getReportsSummary } from "../api/reports";
+import { getReportsSummary, downloadReportsCsv } from "../api/reports";
 import {
   BarChart,
   Bar,
@@ -39,6 +39,24 @@ export default function Reports() {
     }
   }
 
+  const handleExportCsv = async () => {
+    setError(null);
+    try {
+      const response = await downloadReportsCsv();
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "vehicle_summary_report.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Failed to download CSV report. Please try again.");
+    }
+  };
+
   // Calculate totals for summary cards
   const stats = (() => {
     if (!data) return { totalCost: 0, avgEfficiency: 0, bestVehicle: "N/A" };
@@ -64,11 +82,20 @@ export default function Reports() {
   return (
     <div className="space-y-8">
       {/* Title block */}
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Analytics & Reports</h1>
-        <p className="text-sm text-gray-500">
-          Financial performance, vehicle operational costs, and fuel efficiency metrics.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Analytics & Reports</h1>
+          <p className="text-sm text-gray-500">
+            Financial performance, vehicle operational costs, and fuel efficiency metrics.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="rounded-md bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
+        >
+          Export CSV
+        </button>
       </div>
 
       {error && (
