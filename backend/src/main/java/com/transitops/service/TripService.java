@@ -2,8 +2,10 @@ package com.transitops.service;
 
 import com.transitops.dto.TripRequest;
 import com.transitops.entity.Driver;
+import com.transitops.entity.DriverStatus;
 import com.transitops.entity.Trip;
 import com.transitops.entity.Vehicle;
+import com.transitops.entity.VehicleStatus;
 import com.transitops.exception.BusinessRuleException;
 import com.transitops.repository.DriverRepository;
 import com.transitops.repository.TripRepository;
@@ -32,11 +34,11 @@ public class TripService {
         Driver driver = driverRepository.findById(request.getDriverId())
                 .orElseThrow(() -> new BusinessRuleException("Driver not found with ID: " + request.getDriverId()));
 
-        if (vehicle.getStatus() != Vehicle.VehicleStatus.AVAILABLE) {
+        if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
             throw new BusinessRuleException("Vehicle must have status AVAILABLE (current: " + vehicle.getStatus() + ")");
         }
 
-        if (driver.getStatus() != Driver.DriverStatus.AVAILABLE) {
+        if (driver.getStatus() != DriverStatus.AVAILABLE) {
             throw new BusinessRuleException("Driver must have status AVAILABLE (current: " + driver.getStatus() + ")");
         }
 
@@ -76,13 +78,13 @@ public class TripService {
 
         Vehicle vehicle = trip.getVehicle();
         if (vehicle != null) {
-            vehicle.setStatus(Vehicle.VehicleStatus.ON_TRIP);
+            vehicle.setStatus(VehicleStatus.ON_TRIP);
             vehicleRepository.save(vehicle);
         }
 
         Driver driver = trip.getDriver();
         if (driver != null) {
-            driver.setStatus(Driver.DriverStatus.ON_TRIP);
+            driver.setStatus(DriverStatus.ON_TRIP);
             driverRepository.save(driver);
         }
 
@@ -102,13 +104,13 @@ public class TripService {
 
         Vehicle vehicle = trip.getVehicle();
         if (vehicle != null) {
-            vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+            vehicle.setStatus(VehicleStatus.AVAILABLE);
             vehicleRepository.save(vehicle);
         }
 
         Driver driver = trip.getDriver();
         if (driver != null) {
-            driver.setStatus(Driver.DriverStatus.AVAILABLE);
+            driver.setStatus(DriverStatus.AVAILABLE);
             driverRepository.save(driver);
         }
 
@@ -127,13 +129,13 @@ public class TripService {
         if (trip.getStatus() == Trip.TripStatus.DISPATCHED) {
             Vehicle vehicle = trip.getVehicle();
             if (vehicle != null) {
-                vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+                vehicle.setStatus(VehicleStatus.AVAILABLE);
                 vehicleRepository.save(vehicle);
             }
 
             Driver driver = trip.getDriver();
             if (driver != null) {
-                driver.setStatus(Driver.DriverStatus.AVAILABLE);
+                driver.setStatus(DriverStatus.AVAILABLE);
                 driverRepository.save(driver);
             }
         }

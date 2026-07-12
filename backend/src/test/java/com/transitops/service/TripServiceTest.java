@@ -2,8 +2,10 @@ package com.transitops.service;
 
 import com.transitops.dto.TripRequest;
 import com.transitops.entity.Driver;
+import com.transitops.entity.DriverStatus;
 import com.transitops.entity.Trip;
 import com.transitops.entity.Vehicle;
+import com.transitops.entity.VehicleStatus;
 import com.transitops.exception.BusinessRuleException;
 import com.transitops.repository.DriverRepository;
 import com.transitops.repository.TripRepository;
@@ -45,12 +47,12 @@ class TripServiceTest {
     void setUp() {
         vehicle = new Vehicle();
         vehicle.setId(1L);
-        vehicle.setStatus(Vehicle.VehicleStatus.AVAILABLE);
+        vehicle.setStatus(VehicleStatus.AVAILABLE);
         vehicle.setMaxLoadCapacity(1000.0);
 
         driver = new Driver();
         driver.setId(1L);
-        driver.setStatus(Driver.DriverStatus.AVAILABLE);
+        driver.setStatus(DriverStatus.AVAILABLE);
         driver.setLicenseExpiry(LocalDate.now().plusDays(10));
 
         request = new TripRequest();
@@ -80,7 +82,7 @@ class TripServiceTest {
 
     @Test
     void createTrip_VehicleNotAvailable_ThrowsException() {
-        vehicle.setStatus(Vehicle.VehicleStatus.ON_TRIP);
+        vehicle.setStatus(VehicleStatus.ON_TRIP);
         when(vehicleRepository.findById(1L)).thenReturn(Optional.of(vehicle));
         when(driverRepository.findById(1L)).thenReturn(Optional.of(driver));
 
@@ -93,7 +95,7 @@ class TripServiceTest {
 
     @Test
     void createTrip_DriverNotAvailable_ThrowsException() {
-        driver.setStatus(Driver.DriverStatus.SUSPENDED);
+        driver.setStatus(DriverStatus.SUSPENDED);
         when(vehicleRepository.findById(1L)).thenReturn(Optional.of(vehicle));
         when(driverRepository.findById(1L)).thenReturn(Optional.of(driver));
 
@@ -146,8 +148,8 @@ class TripServiceTest {
         assertNotNull(result);
         assertEquals(Trip.TripStatus.DISPATCHED, result.getStatus());
         assertNotNull(result.getDispatchedAt());
-        assertEquals(Vehicle.VehicleStatus.ON_TRIP, vehicle.getStatus());
-        assertEquals(Driver.DriverStatus.ON_TRIP, driver.getStatus());
+        assertEquals(VehicleStatus.ON_TRIP, vehicle.getStatus());
+        assertEquals(DriverStatus.ON_TRIP, driver.getStatus());
         verify(vehicleRepository).save(vehicle);
         verify(driverRepository).save(driver);
     }
@@ -185,8 +187,8 @@ class TripServiceTest {
         assertEquals(120.5, result.getActualDistance());
         assertEquals(15.0, result.getFuelConsumed());
         assertNotNull(result.getCompletedAt());
-        assertEquals(Vehicle.VehicleStatus.AVAILABLE, vehicle.getStatus());
-        assertEquals(Driver.DriverStatus.AVAILABLE, driver.getStatus());
+        assertEquals(VehicleStatus.AVAILABLE, vehicle.getStatus());
+        assertEquals(DriverStatus.AVAILABLE, driver.getStatus());
         verify(vehicleRepository).save(vehicle);
         verify(driverRepository).save(driver);
     }
@@ -206,8 +208,8 @@ class TripServiceTest {
 
         assertNotNull(result);
         assertEquals(Trip.TripStatus.CANCELLED, result.getStatus());
-        assertEquals(Vehicle.VehicleStatus.AVAILABLE, vehicle.getStatus());
-        assertEquals(Driver.DriverStatus.AVAILABLE, driver.getStatus());
+        assertEquals(VehicleStatus.AVAILABLE, vehicle.getStatus());
+        assertEquals(DriverStatus.AVAILABLE, driver.getStatus());
         verify(vehicleRepository).save(vehicle);
         verify(driverRepository).save(driver);
     }
