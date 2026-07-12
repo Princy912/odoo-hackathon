@@ -18,4 +18,15 @@ public class ReportController {
     public ResponseEntity<ReportService.ReportSummaryResponse> getSummary() {
         return ResponseEntity.ok(reportService.getSummary());
     }
+
+    @GetMapping("/export/csv")
+    public ResponseEntity<byte[]> exportCsv() {
+        String csvContent = reportService.exportVehicleSummaryCsv();
+        byte[] csvBytes = csvContent.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"vehicle_summary_report.csv\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv"))
+                .body(csvBytes);
+    }
 }

@@ -41,6 +41,7 @@ public class ReportService {
         private double acquisitionCost;
         private double revenue;
         private double roi;
+        private double fuelEfficiency;
     }
 
     @Data
@@ -77,13 +78,23 @@ public class ReportService {
 
             summary.setOperationalCost(fuelCost + maintenanceCost);
 
-            // Calculate revenue using completed trips
+            // Calculate revenue and fuel efficiency using completed trips
             List<Trip> completedTrips = tripRepository.findByVehicleIdAndStatus(vehicle.getId(), Trip.TripStatus.COMPLETED);
             double revenue = completedTrips.stream()
                     .filter(t -> t.getActualDistance() != null)
                     .mapToDouble(t -> t.getActualDistance() * FLAT_RATE_REVENUE_PER_KM)
                     .sum();
             summary.setRevenue(revenue);
+
+            double totalDistance = completedTrips.stream()
+                    .filter(t -> t.getActualDistance() != null)
+                    .mapToDouble(Trip::getActualDistance)
+                    .sum();
+            double totalFuel = completedTrips.stream()
+                    .filter(t -> t.getFuelConsumed() != null)
+                    .mapToDouble(Trip::getFuelConsumed)
+                    .sum();
+            summary.setFuelEfficiency(totalFuel > 0 ? totalDistance / totalFuel : 0.0);
 
             // ROI = (revenue - (maintenance + fuel)) / acquisitionCost
             double profit = revenue - summary.getOperationalCost();
@@ -123,5 +134,24 @@ public class ReportService {
         }
 
         return response;
+    }
+
+    public String exportVehicleSummaryCsv() {
+        ReportSummaryResponse summary = getSummary();
+        StringBuilder csv = new StringBuilder();
+        
+        // Header
+        csv.append("Vehicle ID,Registration Number,Model,Operational Cost ($),Fuel Efficiency (km/L),ROI (%)\n");
+        
+        for (VehicleSummary vs : summary.getVehicleReports()) {
+            csv.append(vs.getVehicleId()).append(",")
+               .append(vs.getRegNumber()).append(",")
+               .append(vs.getModel().replace(",", " ")).append(",")
+               .append(String.format("%.2f", vs.getOperationalCost())).append(",")
+               .append(String.format("%.2f", vs.getFuelEfficiency())).append(",")
+               .append(String.format("%.2f", vs.getRoi())).append("\n");
+        }
+        
+        return csv.toString();
     }
 }
