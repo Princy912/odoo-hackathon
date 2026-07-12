@@ -1,4 +1,4 @@
-import { kpiData } from "../data/kpiData";
+import { kpiData } from "../data/Kpidata";
 
 function KpiCard({ label, value, unit }) {
   return (
