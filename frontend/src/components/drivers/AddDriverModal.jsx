@@ -97,7 +97,7 @@ function Field({ label, error, children }) {
 }
 
 function inputClass(error) {
-  return `w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+  return `w-full rounded-md border px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 ${
     error
       ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500"
       : "border-slate-300 focus:border-slate-500 focus:ring-slate-500"

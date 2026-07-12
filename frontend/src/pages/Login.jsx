@@ -55,6 +55,7 @@ export default function Login() {
             </label>
             <input
               type="email"
+              autoComplete="email"
               placeholder="admin@transitops.com"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               {...register("email", { required: "Email is required" })}
@@ -70,6 +71,7 @@ export default function Login() {
             </label>
             <input
               type="password"
+              autoComplete="current-password"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               {...register("password", { required: "Password is required" })}
             />
