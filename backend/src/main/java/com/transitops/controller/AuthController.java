@@ -104,4 +104,32 @@ public class AuthController {
         return ResponseEntity.ok(
                 new AuthResponse(token, user.getRole().name(), user.getEmail()));
     }
+
+    // ── GET /api/auth/me ──────────────────────────────────────────────────────
+
+    /**
+     * Retrieve the currently authenticated user's profile details.
+     *
+     * <p>Requires a valid JWT token in the Authorization header.
+     *
+     * @param principal the authenticated principal containing the email
+     * @return 200 OK with {@link MeResponse}
+     */
+    @GetMapping("/me")
+    public ResponseEntity<com.transitops.dto.MeResponse> getMe(java.security.Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        }
+
+        User user = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        return ResponseEntity.ok(com.transitops.dto.MeResponse.builder()
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build());
+    }
 }

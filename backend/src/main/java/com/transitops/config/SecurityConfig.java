@@ -4,8 +4,10 @@ import com.transitops.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,6 +29,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Enable role-based method security annotations like @PreAuthorize
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -39,17 +42,15 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Auth endpoints are public
-                .requestMatchers("/api/auth/**").permitAll()
+                // Public auth endpoints for register and login (POST only)
+                .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                 // Health check (kept open for ops convenience)
                 .requestMatchers("/api/health").permitAll()
-                // Swagger & OpenAPI endpoints
+                // Swagger & OpenAPI endpoints (kept open for development/documentation)
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                // Trips and maintenance endpoints kept open for testing
-                .requestMatchers("/api/trips/**", "/api/maintenance/**").permitAll()
                 // Every other /api/** route requires authentication
                 .requestMatchers("/api/**").authenticated()
-                // Non-API paths (e.g. actuator) — can tighten later
+                // Non-API paths (e.g. static assets, frontend) — permitted
                 .anyRequest().permitAll()
             )
             // Plug in our JWT filter ahead of Spring's default auth filter
